@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
@@ -9,29 +9,19 @@ function AuthRedirect({ children }: { children: React.ReactNode }) {
   const { connected, connecting, connect } = useOpenCode();
   const segments = useSegments();
   const router = useRouter();
-  const [autoConnectAttempted, setAutoConnectAttempted] = useState(false);
-
-  // Auto-connect on mount
-  useEffect(() => {
-    if (!autoConnectAttempted) {
-      setAutoConnectAttempted(true);
-      connect();
-    }
-  }, [autoConnectAttempted, connect]);
 
   useEffect(() => {
     // Wait for auto-connect to finish
-    if (connecting) return;
+    if (connecting) {
+      return;
+    }
 
     const inAuthGroup = segments[0] === '(tabs)';
     const inChatScreen = segments[0] === 'chat';
-    const onConnectScreen = segments[0] === 'connect';
 
     if (!connected && (inAuthGroup || inChatScreen)) {
-      // Redirect to connect if not authenticated
       router.replace('/connect');
     } else if (connected && !inAuthGroup && !inChatScreen && segments.length > 0) {
-      // Redirect to tabs if authenticated and not already in tabs or chat
       router.replace('/(tabs)/sessions');
     }
   }, [connected, connecting, segments, router]);
