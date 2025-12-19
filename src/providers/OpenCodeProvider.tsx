@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createOpencodeClient } from '@opencode-ai/sdk/client';
+
+const SERVER_URL_KEY = 'opencode_server_url';
 
 export type OpenCodeClient = ReturnType<typeof createOpencodeClient>;
 
@@ -124,7 +127,14 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [serverUrl, setServerUrl] = useState(defaultServerUrl);
+  const [serverUrl, setServerUrlState] = useState(defaultServerUrl);
+
+  const setServerUrl = useCallback((url: string) => {
+    setServerUrlState(url);
+    AsyncStorage.setItem(SERVER_URL_KEY, url).catch(err => {
+      console.error('Failed to save server URL to storage:', err);
+    });
+  }, []);
   
   const clientRef = useRef<OpenCodeClient | null>(null);
   
@@ -176,9 +186,13 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
     return '';
   };
   
+  const connectionIdRef = useRef(0);
+  
   // Connect to server
   const connect = useCallback(async (url?: string) => {
     const targetUrl = url || serverUrl;
+    const connectionId = ++connectionIdRef.current;
+    
     setConnecting(true);
     setError(null);
     
@@ -187,15 +201,28 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
         baseUrl: targetUrl,
       });
       
-      // Test connection
-      await client.session.list();
+      // Test connection with a timeout
+      const listPromise = client.session.list();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Connection timed out')), 5000)
+      );
       
+      await Promise.race([listPromise, timeoutPromise]);
+      
+      if (connectionId !== connectionIdRef.current) {
+        return false;
+      }
+
       clientRef.current = client;
       setServerUrl(targetUrl);
       setConnected(true);
       setConnecting(false);
       return true;
     } catch (err) {
+      if (connectionId !== connectionIdRef.current) {
+        return false;
+      }
+
       setError((err as Error).message);
       setConnected(false);
       setConnecting(false);
@@ -203,6 +230,26 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
     }
   }, [serverUrl]);
   
+  // Load saved URL and auto-connect on mount
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const savedUrl = await AsyncStorage.getItem(SERVER_URL_KEY);
+        if (savedUrl) {
+          setServerUrlState(savedUrl);
+          // Silently try to connect
+          connect(savedUrl);
+        } else {
+          connect(serverUrl);
+        }
+      } catch (err) {
+        // Fallback to default
+        connect(serverUrl);
+      }
+    };
+    init();
+  }, []); // Run once on mount
+
   // Disconnect
   const disconnect = useCallback(() => {
     // Stop any SSE subscription

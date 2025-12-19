@@ -18,6 +18,7 @@
       "bundleIdentifier": "com.openpad.app"
     },
     "android": {
+      "package": "com.openpad.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

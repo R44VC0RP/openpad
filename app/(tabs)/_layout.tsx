@@ -1,7 +1,19 @@
-import { DynamicColorIOS } from 'react-native';
-import { NativeTabs, Icon, Label } from 'expo-router/unstable-native-tabs';
+import { Platform } from 'react-native';
+import { NativeTabs, Icon, Label, VectorIcon } from 'expo-router/unstable-native-tabs';
+import { useTheme } from '../../src/hooks/useTheme';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
+  const { isDark } = useTheme();
+
+  const labelColor = Platform.OS === 'ios'
+    ? { color: { dark: 'white', light: 'black' } as any }
+    : isDark ? 'white' : 'black';
+
+  const tintColor = Platform.OS === 'ios'
+    ? { color: { dark: '#22d3ee', light: '#0891b2' } as any }
+    : isDark ? '#22d3ee' : '#0891b2';
+
   return (
     <NativeTabs
       // iOS 26 Liquid Glass features
@@ -9,23 +21,23 @@ export default function TabLayout() {
       disableTransparentOnScrollEdge // For FlatList compatibility
       // Styling for liquid glass color adaptation
       labelStyle={{
-        color: DynamicColorIOS({
-          dark: 'white',
-          light: 'black',
-        }),
+        color: labelColor as any,
       }}
-      tintColor={DynamicColorIOS({
-        dark: '#22d3ee',
-        light: '#0891b2',
-      })}
+      tintColor={tintColor as any}
     >
       <NativeTabs.Trigger name="sessions">
-        <Icon sf={{ default: 'bubble.left', selected: 'bubble.left.fill' }} />
+        <Icon
+          sf={{ default: 'bubble.left', selected: 'bubble.left.fill' }}
+          src={<VectorIcon family={Ionicons} name="chatbubble-outline" />}
+        />
         <Label>Sessions</Label>
       </NativeTabs.Trigger>
-      
+
       <NativeTabs.Trigger name="settings">
-        <Icon sf={{ default: 'gear', selected: 'gear' }} />
+        <Icon
+          sf={{ default: 'gear', selected: 'gear' }}
+          src={<VectorIcon family={Ionicons} name="settings-outline" />}
+        />
         <Label>Settings</Label>
       </NativeTabs.Trigger>
     </NativeTabs>

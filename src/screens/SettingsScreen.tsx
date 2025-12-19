@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
@@ -23,8 +24,8 @@ export function SettingsScreen({
   const { theme, colors: c } = useTheme();
   const insets = useSafeAreaInsets();
 
-  // Extra padding for the floating liquid glass tab bar on iPad
-  const topPadding = insets.top + 60;
+  // Extra padding for the floating liquid glass tab bar on iOS/iPad
+  const topPadding = Platform.OS === 'ios' ? insets.top + 60 : insets.top + spacing.lg;
 
   return (
     <View style={theme.container}>
