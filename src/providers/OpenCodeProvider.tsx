@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect, ReactNode } from 'react';
 import { createOpencodeClient } from '@opencode-ai/sdk/client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type OpenCodeClient = ReturnType<typeof createOpencodeClient>;
 
@@ -76,6 +77,8 @@ interface OpenCodeContextValue {
   connecting: boolean;
   error: string | null;
   serverUrl: string;
+  storageReady: boolean;
+  hasSavedServerUrl: boolean;
   
   // Connection actions
   connect: (url?: string) => Promise<boolean>;
@@ -125,8 +128,11 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState(defaultServerUrl);
+  const [storageReady, setStorageReady] = useState(false);
+  const [hasSavedServerUrl, setHasSavedServerUrl] = useState(false);
   
   const clientRef = useRef<OpenCodeClient | null>(null);
+  const storageKeyRef = useRef('opencode.serverUrl');
   
   // Cache
   const cacheRef = useRef<Cache>({
@@ -152,7 +158,7 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
   // SSE subscription state
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const sseAbortControllerRef = useRef<AbortController | null>(null);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   // Sending state
   const [isSending, setIsSending] = useState(false);
@@ -192,6 +198,8 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
       
       clientRef.current = client;
       setServerUrl(targetUrl);
+      await AsyncStorage.setItem(storageKeyRef.current, targetUrl);
+      setHasSavedServerUrl(true);
       setConnected(true);
       setConnecting(false);
       return true;
@@ -224,6 +232,27 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
     setSessions([]);
     setSessionMessagesState(new Map());
     setProjects([]);
+  }, []);
+
+  // Load saved server URL on boot
+  useEffect(() => {
+    const loadSavedUrl = async () => {
+      try {
+        const savedUrl = await AsyncStorage.getItem(storageKeyRef.current);
+        if (savedUrl) {
+          setServerUrl(savedUrl);
+          setHasSavedServerUrl(true);
+        } else {
+          setHasSavedServerUrl(false);
+        }
+      } catch {
+        setHasSavedServerUrl(false);
+      } finally {
+        setStorageReady(true);
+      }
+    };
+
+    loadSavedUrl();
   }, []);
   
   // Fetch sessions with stale-while-revalidate
@@ -575,6 +604,8 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
     connecting,
     error,
     serverUrl,
+    storageReady,
+    hasSavedServerUrl,
     connect,
     disconnect,
     setServerUrl,
