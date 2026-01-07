@@ -39,6 +39,7 @@ import {
   Mic,
   Send,
   ArrowUp,
+  X,
 } from 'lucide-react-native';
 import { useTheme } from '../hooks/useTheme';
 
@@ -81,7 +82,8 @@ export type IconName =
   | 'inbox'
   | 'mic'
   | 'send'
-  | 'arrow-up';
+  | 'arrow-up'
+  | 'x';
 
 interface IconProps {
   name: IconName;
@@ -130,6 +132,7 @@ const iconMap = {
   'mic': Mic,
   'send': Send,
   'arrow-up': ArrowUp,
+  'x': X,
 };
 
 export function Icon({ name, size = 24, color, strokeWidth = 2 }: IconProps) {

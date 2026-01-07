@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -11,49 +11,29 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
 import { Icon } from '../components/Icon';
 import { spacing, radius, typography } from '../theme';
-import type { Project } from '../hooks/useOpenCode';
+import type { Project } from '../providers/OpenCodeProvider';
+import { getProjectName, getProjectPath } from '../utils/project';
 
 interface ProjectsScreenProps {
-  getProjects: () => Promise<Project[]>;
+  projects: Project[];
+  loading?: boolean;
+  refreshing?: boolean;
+  onRefresh?: () => void;
   onSelectProject?: (project: Project) => void;
 }
 
 export function ProjectsScreen({
-  getProjects,
+  projects,
+  loading = false,
+  refreshing = false,
+  onRefresh,
   onSelectProject,
 }: ProjectsScreenProps) {
   const { theme, colors: c } = useTheme();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  const loadProjects = useCallback(async () => {
-    const data = await getProjects();
-    setProjects(data);
-    setLoading(false);
-  }, [getProjects]);
-
-  useEffect(() => {
-    loadProjects();
-  }, [loadProjects]);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadProjects();
-    setRefreshing(false);
-  }, [loadProjects]);
-
-  const getProjectName = (project: Project) => {
-    if (project.name) return project.name;
-    if (project.path) {
-      const parts = project.path.split('/');
-      return parts[parts.length - 1] || project.path;
-    }
-    return 'Unknown Project';
-  };
 
   const renderProject = ({ item }: { item: Project }) => {
     const name = getProjectName(item);
+    const path = getProjectPath(item);
     
     return (
       <TouchableOpacity
@@ -69,9 +49,9 @@ export function ProjectsScreen({
           <Text style={[theme.bodyMedium]} numberOfLines={1}>
             {name}
           </Text>
-          {item.path && (
+          {path && (
             <Text style={[theme.small, theme.textSecondary]} numberOfLines={1}>
-              {item.path}
+              {path}
             </Text>
           )}
         </View>
@@ -98,11 +78,13 @@ export function ProjectsScreen({
         keyExtractor={(item) => item.id}
         renderItem={renderProject}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={c.accent}
-          />
+          onRefresh ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={c.accent}
+            />
+          ) : undefined
         }
         contentContainerStyle={[
           styles.list,

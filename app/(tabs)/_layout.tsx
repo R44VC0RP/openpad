@@ -19,6 +19,11 @@ export default function TabLayout() {
         light: '#0891b2',
       })}
     >
+      <NativeTabs.Trigger name="projects">
+        <Icon sf={{ default: 'folder', selected: 'folder.fill' }} />
+        <Label>Projects</Label>
+      </NativeTabs.Trigger>
+      
       <NativeTabs.Trigger name="sessions">
         <Icon sf={{ default: 'bubble.left', selected: 'bubble.left.fill' }} />
         <Label>Sessions</Label>
