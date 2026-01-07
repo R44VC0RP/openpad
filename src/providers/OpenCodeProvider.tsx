@@ -319,11 +319,15 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
     }
   }, []);
   
+  // Derive the directory for session filtering
+  const selectedProjectDirectory = useMemo(() => {
+    return selectedProject?.worktree || selectedProject?.path;
+  }, [selectedProject]);
+  
   // Refresh sessions (uses selected project's directory if set)
   const refreshSessions = useCallback(() => {
-    const directory = selectedProject?.worktree || selectedProject?.path;
-    fetchSessions(true, directory);
-  }, [fetchSessions, selectedProject]);
+    fetchSessions(true, selectedProjectDirectory);
+  }, [fetchSessions, selectedProjectDirectory]);
   
   // Auto-fetch sessions when connected or project changes
   useEffect(() => {
@@ -332,10 +336,9 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
       cacheRef.current.sessions = null;
       setSessions([]);
       
-      const directory = selectedProject?.worktree || selectedProject?.path;
-      fetchSessions(false, directory);
+      fetchSessions(false, selectedProjectDirectory);
     }
-  }, [connected, fetchSessions, selectedProject]);
+  }, [connected, fetchSessions, selectedProjectDirectory]);
   
   // Get session messages (from cache or state)
   const getSessionMessages = useCallback((sessionId: string): MessageWithParts[] => {

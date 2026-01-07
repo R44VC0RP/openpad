@@ -12,6 +12,7 @@ import { useTheme } from '../hooks/useTheme';
 import { Icon } from '../components/Icon';
 import { spacing, typography } from '../theme';
 import type { Session, SessionWithPreview, Project } from '../providers/OpenCodeProvider';
+import { getProjectName } from '../utils/project';
 
 interface SessionsScreenProps {
   sessions: SessionWithPreview[];
@@ -191,17 +192,6 @@ export function SessionsScreen({
   // Extra padding for the floating liquid glass tab bar on iPad
   const topPadding = insets.top + 60;
 
-  // Get project display name
-  const getProjectName = (project: Project) => {
-    if (project.name) return project.name;
-    const path = project.worktree || project.path;
-    if (path) {
-      const parts = path.split('/').filter(Boolean);
-      return parts[parts.length - 1] || path;
-    }
-    return project.id;
-  };
-
   return (
     <View style={theme.container}>
       {/* Header */}
@@ -214,7 +204,7 @@ export function SessionsScreen({
               style={styles.projectFilter}
             >
               <Icon name="folder-open" size={12} color={c.accent} />
-              <Text style={[theme.small, { color: c.accent, marginLeft: 4 }]} numberOfLines={1}>
+              <Text style={[theme.small, { color: c.accent }]} numberOfLines={1}>
                 {getProjectName(selectedProject)}
               </Text>
               <Icon name="x" size={14} color={c.accent} />
@@ -347,5 +337,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: spacing.xs,
+    gap: spacing.xs,
   },
 });

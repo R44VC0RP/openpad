@@ -12,6 +12,7 @@ import { useTheme } from '../hooks/useTheme';
 import { Icon } from '../components/Icon';
 import { spacing, radius, typography } from '../theme';
 import type { Project } from '../providers/OpenCodeProvider';
+import { getProjectName, getProjectPath } from '../utils/project';
 
 interface ProjectsScreenProps {
   projects: Project[];
@@ -29,48 +30,6 @@ export function ProjectsScreen({
   onSelectProject,
 }: ProjectsScreenProps) {
   const { theme, colors: c } = useTheme();
-
-  // Convert absolute path to ~/relative format
-  const formatPath = (path: string) => {
-    const homePatterns = [
-      /^\/Users\/[^/]+\//,      // macOS: /Users/username/
-      /^\/home\/[^/]+\//,        // Linux: /home/username/
-      /^C:\\Users\\[^\\]+\\/i,   // Windows: C:\Users\username\
-    ];
-    
-    for (const pattern of homePatterns) {
-      if (pattern.test(path)) {
-        return '~/' + path.replace(pattern, '');
-      }
-    }
-    return path;
-  };
-
-  // Get the project path from either 'worktree' (SDK) or 'path' field
-  const getProjectPathRaw = (project: Project) => {
-    return project.worktree || project.path;
-  };
-
-  const getProjectName = (project: Project) => {
-    if (project.name) return project.name;
-    
-    const projectPath = getProjectPathRaw(project);
-    if (projectPath) {
-      const parts = projectPath.split('/').filter(Boolean);
-      return parts[parts.length - 1] || projectPath;
-    }
-    
-    if (project.id) return project.id;
-    return 'Unknown Project';
-  };
-
-  const getProjectPath = (project: Project) => {
-    const projectPath = getProjectPathRaw(project);
-    if (projectPath) {
-      return formatPath(projectPath);
-    }
-    return null;
-  };
 
   const renderProject = ({ item }: { item: Project }) => {
     const name = getProjectName(item);
