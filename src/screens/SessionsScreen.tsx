@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
 import { Icon } from '../components/Icon';
 import { spacing, typography } from '../theme';
-import type { Session, SessionWithPreview } from '../providers/OpenCodeProvider';
+import type { Session, SessionWithPreview, Project } from '../providers/OpenCodeProvider';
 
 interface SessionsScreenProps {
   sessions: SessionWithPreview[];
@@ -19,6 +19,8 @@ interface SessionsScreenProps {
   refreshing: boolean;
   onRefresh: () => void;
   onSelectSession: (session: Session) => void;
+  selectedProject?: Project | null;
+  onClearProject?: () => void;
 }
 
 interface GroupedSession extends SessionWithPreview {
@@ -32,6 +34,8 @@ export function SessionsScreen({
   refreshing,
   onRefresh,
   onSelectSession,
+  selectedProject,
+  onClearProject,
 }: SessionsScreenProps) {
   const { theme, colors: c } = useTheme();
   const insets = useSafeAreaInsets();
@@ -187,15 +191,39 @@ export function SessionsScreen({
   // Extra padding for the floating liquid glass tab bar on iPad
   const topPadding = insets.top + 60;
 
+  // Get project display name
+  const getProjectName = (project: Project) => {
+    if (project.name) return project.name;
+    const path = project.worktree || project.path;
+    if (path) {
+      const parts = path.split('/').filter(Boolean);
+      return parts[parts.length - 1] || path;
+    }
+    return project.id;
+  };
+
   return (
     <View style={theme.container}>
       {/* Header */}
       <View style={[theme.header, { paddingTop: topPadding }]}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={theme.title}>Sessions</Text>
-          <Text style={[theme.small, theme.textSecondary]}>
-            {parentCount} {parentCount === 1 ? 'session' : 'sessions'}
-          </Text>
+          {selectedProject ? (
+            <TouchableOpacity 
+              onPress={onClearProject}
+              style={styles.projectFilter}
+            >
+              <Icon name="folder-open" size={12} color={c.accent} />
+              <Text style={[theme.small, { color: c.accent, marginLeft: 4 }]} numberOfLines={1}>
+                {getProjectName(selectedProject)}
+              </Text>
+              <Icon name="x" size={14} color={c.accent} />
+            </TouchableOpacity>
+          ) : (
+            <Text style={[theme.small, theme.textSecondary]}>
+              {parentCount} {parentCount === 1 ? 'session' : 'sessions'}
+            </Text>
+          )}
         </View>
       </View>
 
@@ -314,5 +342,10 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     marginTop: spacing.sm,
+  },
+  projectFilter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.xs,
   },
 });

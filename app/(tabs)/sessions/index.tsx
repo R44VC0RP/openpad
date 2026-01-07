@@ -10,12 +10,18 @@ export default function Sessions() {
     sessionsLoading,
     sessionsRefreshing,
     refreshSessions,
+    selectedProject,
+    setSelectedProject,
   } = useOpenCode();
 
   const handleSelectSession = useCallback((session: Session) => {
     // Navigate to chat screen outside of tabs (hides tab bar)
     router.push(`/chat/${session.id}`);
   }, [router]);
+
+  const handleClearProject = useCallback(() => {
+    setSelectedProject(null);
+  }, [setSelectedProject]);
 
   return (
     <SessionsScreen
@@ -24,6 +30,8 @@ export default function Sessions() {
       refreshing={sessionsRefreshing}
       onRefresh={refreshSessions}
       onSelectSession={handleSelectSession}
+      selectedProject={selectedProject}
+      onClearProject={handleClearProject}
     />
   );
 }

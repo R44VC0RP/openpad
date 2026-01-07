@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useRef, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo, ReactNode } from 'react';
 import { createOpencodeClient } from '@opencode-ai/sdk/client';
 
 export type OpenCodeClient = ReturnType<typeof createOpencodeClient>;
@@ -20,6 +20,7 @@ export interface Project {
   id: string;
   name?: string;
   path?: string;
+  worktree?: string;  // SDK returns this as the project path
 }
 
 export interface Message {
@@ -108,6 +109,10 @@ interface OpenCodeContextValue {
   projectsLoading: boolean;
   refreshProjects: () => void;
   
+  // Selected project for filtering sessions
+  selectedProject: Project | null;
+  setSelectedProject: (project: Project | null) => void;
+  
   // Client access
   client: OpenCodeClient | null;
 }
@@ -148,6 +153,7 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
   // UI state for projects
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   
   // SSE subscription state
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -227,7 +233,7 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
   }, []);
   
   // Fetch sessions with stale-while-revalidate
-  const fetchSessions = useCallback(async (isRefresh = false) => {
+  const fetchSessions = useCallback(async (isRefresh = false, directory?: string) => {
     if (!clientRef.current) return;
     
     const cache = cacheRef.current;
@@ -245,7 +251,9 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
     }
     
     try {
-      const result = await clientRef.current.session.list();
+      const result = await clientRef.current.session.list({
+        query: directory ? { directory } : undefined,
+      });
       const sessionsData = (result.data ?? []) as Session[];
       
       // Sort by updated/created date
@@ -311,17 +319,23 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
     }
   }, []);
   
-  // Refresh sessions
+  // Refresh sessions (uses selected project's directory if set)
   const refreshSessions = useCallback(() => {
-    fetchSessions(true);
-  }, [fetchSessions]);
+    const directory = selectedProject?.worktree || selectedProject?.path;
+    fetchSessions(true, directory);
+  }, [fetchSessions, selectedProject]);
   
-  // Auto-fetch sessions when connected
+  // Auto-fetch sessions when connected or project changes
   useEffect(() => {
     if (connected) {
-      fetchSessions();
+      // Clear sessions cache when project changes to avoid showing stale data
+      cacheRef.current.sessions = null;
+      setSessions([]);
+      
+      const directory = selectedProject?.worktree || selectedProject?.path;
+      fetchSessions(false, directory);
     }
-  }, [connected, fetchSessions]);
+  }, [connected, fetchSessions, selectedProject]);
   
   // Get session messages (from cache or state)
   const getSessionMessages = useCallback((sessionId: string): MessageWithParts[] => {
@@ -594,6 +608,8 @@ export function OpenCodeProvider({ children, defaultServerUrl = 'http://10.0.10.
     projects,
     projectsLoading,
     refreshProjects,
+    selectedProject,
+    setSelectedProject,
     client: clientRef.current,
   };
   
