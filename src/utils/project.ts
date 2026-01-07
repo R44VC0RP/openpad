@@ -14,8 +14,10 @@ export function getProjectPathRaw(project: Project): string | undefined {
 export function getProjectName(project: Project): string {
   if (project.name) return project.name;
   
-  const path = getProjectPathRaw(project);
+  let path = getProjectPathRaw(project);
   if (path) {
+    // Normalize Windows backslashes to forward slashes before splitting
+    path = path.replace(/\\+/g, '/');
     const parts = path.split('/').filter(Boolean);
     return parts[parts.length - 1] || path;
   }
